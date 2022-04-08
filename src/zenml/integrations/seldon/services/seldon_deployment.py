@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
 import numpy as np
@@ -29,6 +29,8 @@ from zenml.integrations.seldon.seldon_client import (
     SeldonDeploymentNotFoundError,
 )
 from zenml.logger import get_logger
+from zenml.repository import Repository
+from zenml.secrets_managers.base_secrets_manager import BaseSecretsManager
 from zenml.services.service import BaseService, ServiceConfig
 from zenml.services.service_status import ServiceState, ServiceStatus
 from zenml.services.service_type import ServiceType
@@ -48,21 +50,23 @@ class SeldonDeploymentConfig(ServiceConfig):
             should use the same model name.
         implementation: the Seldon Core implementation used to serve the model.
         replicas: number of replicas to use for the prediction service.
-        secret_name: the name of a Kubernetes secret containing additional
-            configuration parameters for the Seldon Core deployment (e.g.
-            credentials to access the Artifact Store).
+        secrets: a list of ZenML secrets containing additional configuration
+            parameters for the Seldon Core deployment (e.g. credentials to
+            access the Artifact Store where the models are stored). If supplied,
+            the information fetched from these secrets is passed to the Seldon
+            Core deployment server as a list of environment variables.
         model_metadata: optional model metadata information (see
             https://docs.seldon.io/projects/seldon-core/en/latest/reference/apis/metadata.html).
         extra_args: additional arguments to pass to the Seldon Core deployment
             resource configuration.
     """
 
-    model_uri: str
-    model_name: str
+    model_uri: str = ""
+    model_name: str = "default"
     # TODO [ENG-775]: have an enum of all supported Seldon Core implementations
     implementation: str
     replicas: int = 1
-    secret_name: Optional[str]
+    secrets: List[str] = Field(default_factory=list)
     model_metadata: Dict[str, Any] = Field(default_factory=dict)
     extra_args: Dict[str, Any] = Field(default_factory=dict)
 
@@ -278,12 +282,43 @@ class SeldonDeploymentService(BaseService):
         client = self._get_client()
 
         name = self.seldon_deployment_name
+
+        # if a list of ZenML secrets were supplied in the service config,
+        # create a Kubernetes secret as a means to pass this information
+        # to the Seldon Core deployment
+        if self.config.secrets:
+            secret_manager = Repository(  # type: ignore [call-arg]
+                skip_repository_check=True
+            ).active_stack.secrets_manager
+
+            if not secret_manager or not isinstance(
+                secret_manager, BaseSecretsManager
+            ):
+                raise RuntimeError(
+                    f"The active stack doesn't have a secret manager component. "
+                    f"The ZenML secrets specified in the Seldon Core service "
+                    f"configuration cannot be fetched: {self.config.secrets}."
+                )
+
+            zenml_secrets = []
+            for secret_name in self.config.secrets:
+                try:
+                    zenml_secrets.append(secret_manager.get_secret(secret_name))
+                except KeyError:
+                    raise RuntimeError(
+                        f"The ZenML secret '{secret_name}' specified in the "
+                        f"Seldon Core service configuration does not exist: "
+                        f"{self.config.secrets}"
+                    )
+
+            client.create_or_update_secret(name, zenml_secrets)
+
         deployment = SeldonDeployment.build(
             name=name,
             model_uri=self.config.model_uri,
             model_name=self.config.model_name,
             implementation=self.config.implementation,
-            secret_name=self.config.secret_name,
+            secret_name=name if self.config.secrets else None,
             labels=self._get_seldon_deployment_labels(),
             annotations=self.config.get_seldon_deployment_annotations(),
         )
@@ -312,6 +347,12 @@ class SeldonDeploymentService(BaseService):
             client.delete_deployment(name=name, force=force)
         except SeldonDeploymentNotFoundError:
             pass
+
+        # if a list of ZenML secrets were supplied in the service config,
+        # also delete the Kubernetes secret that was used to pass this
+        # information to the Seldon Core deployment
+        if self.config.secrets:
+            client.delete_secret(name)
 
     @property
     def prediction_url(self) -> Optional[str]:

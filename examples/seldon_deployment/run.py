@@ -11,7 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 #  or implied. See the License for the specific language governing
 #  permissions and limitations under the License.
-from typing import cast
+from typing import Optional, cast
 
 import click
 from pipeline import (
@@ -37,7 +37,8 @@ from pipeline import (
 from rich import print
 
 from zenml.integrations.seldon.model_deployers import SeldonModelDeployer
-from zenml.integrations.seldon.services.seldon_deployment import (
+from zenml.integrations.seldon.services import (
+    SeldonDeploymentConfig,
     SeldonDeploymentService,
 )
 from zenml.integrations.seldon.steps import (
@@ -107,6 +108,14 @@ from zenml.integrations.seldon.steps import (
     help="Minimum accuracy required to deploy the model (default: 0.92)",
 )
 @click.option(
+    "--secret",
+    "-x",
+    type=str,
+    default=None,
+    help="Specify the ZenML secret to pass to Seldon Core to authenticate to "
+    "the Artifact Store",
+)
+@click.option(
     "--stop-service",
     is_flag=True,
     default=False,
@@ -123,6 +132,7 @@ def main(
     penalty_strength: float,
     toleration: float,
     min_accuracy: float,
+    secret: Optional[str],
     stop_service: bool,
 ):
     """Run the Seldon example continuous deployment or inference pipeline
@@ -181,10 +191,12 @@ def main(
             ),
             model_deployer=seldon_model_deployer_step(
                 config=SeldonDeployerStepConfig(
-                    model_name=model_name,
-                    replicas=1,
-                    implementation=seldon_implementation,
-                    secrets=["seldon-init-container-secret"],
+                    service_config=SeldonDeploymentConfig(
+                        model_name=model_name,
+                        replicas=1,
+                        implementation=seldon_implementation,
+                        secrets=[secret] if secret else [],
+                    ),
                     timeout=120,
                 )
             ),
