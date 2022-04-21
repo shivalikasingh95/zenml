@@ -988,7 +988,9 @@ class Repository(BaseConfiguration, metaclass=RepositoryMetaClass):
 
     @track(event=AnalyticsEvent.GET_PIPELINES)
     def get_pipelines(
-        self, stack_name: Optional[str] = None
+        self,
+        stack_name: Optional[str] = None,
+        project: Optional[str] = None,
     ) -> List[PipelineView]:
         """Fetches post-execution pipeline views.
 
@@ -996,6 +998,8 @@ class Repository(BaseConfiguration, metaclass=RepositoryMetaClass):
             stack_name: If specified, pipelines in the metadata store of the
                 given stack are returned. Otherwise, pipelines in the metadata
                 store of the currently active stack are returned.
+            project: If specified, only pipelines belonging to the given
+                project are returned.
 
         Returns:
             A list of post-execution pipeline views.
@@ -1011,8 +1015,9 @@ class Repository(BaseConfiguration, metaclass=RepositoryMetaClass):
                 "No active stack is configured for the repository. Run "
                 "`zenml stack set STACK_NAME` to update the active stack."
             )
-        metadata_store = self.get_stack(stack_name).metadata_store
-        return metadata_store.get_pipelines()
+        return self.zen_store.get_pipelines(
+            stack_name=stack_name, project=project
+        )
 
     @track(event=AnalyticsEvent.GET_PIPELINE)
     def get_pipeline(
@@ -1041,8 +1046,7 @@ class Repository(BaseConfiguration, metaclass=RepositoryMetaClass):
                 "No active stack is configured for the repository. Run "
                 "`zenml stack set STACK_NAME` to update the active stack."
             )
-        metadata_store = self.get_stack(stack_name).metadata_store
-        return metadata_store.get_pipeline(pipeline_name)
+        return self.zen_store.get_pipeline(pipeline_name, stack_name=stack_name)
 
     @staticmethod
     def is_repository_directory(path: Path) -> bool:

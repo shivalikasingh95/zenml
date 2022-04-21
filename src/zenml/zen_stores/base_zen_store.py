@@ -14,13 +14,14 @@
 import base64
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import yaml
 
 from zenml.enums import StackComponentType, StoreType
 from zenml.exceptions import StackComponentExistsError, StackExistsError
 from zenml.logger import get_logger
+from zenml.post_execution import PipelineView
 from zenml.stack import Stack
 from zenml.utils.analytics_utils import AnalyticsEvent, track_event
 from zenml.zen_stores.models import (
@@ -36,6 +37,9 @@ from zenml.zen_stores.models import (
 logger = get_logger(__name__)
 
 DEFAULT_USERNAME = "default"
+
+if TYPE_CHECKING:
+    from zenml.metadata_stores import BaseMetadataStore
 
 
 class BaseZenStore(ABC):
@@ -63,8 +67,8 @@ class BaseZenStore(ABC):
             The initialized concrete store instance.
         """
         if not skip_default_registrations:
-            logger.info("Registering default stack and user...")
             if self.stacks_empty:
+                logger.info("Registering default stack and user...")
                 self.register_default_stack()
             self.create_default_user()
 
@@ -738,7 +742,83 @@ class BaseZenStore(ABC):
         except KeyError:
             self.create_user(user_name=DEFAULT_USERNAME)
 
+    def get_pipelines(
+        self, stack_name: str, project: Optional[str] = None
+    ) -> List[PipelineView]:
+        """Fetches post-execution pipeline views.
+
+        Args:
+            stack_name: Stack of which the metadata store to use.
+            project: restrict to only pipelines belonging to this project.
+
+        Returns:
+            A list of post-execution pipeline views.
+
+        Raises:
+            KeyError: If no stack with the given name exists.
+        """
+        pipelines = self._metadata_store(stack_name).get_pipelines()
+        if project is None:
+            return pipelines
+        return [
+            pipe
+            for pipe in pipelines
+            if "::" in pipe.name and pipe.name.split("::")[0] == project
+        ]
+
+    def get_pipeline(
+        self, pipeline_name: str, stack_name: str
+    ) -> Optional[PipelineView]:
+        """Fetches a post-execution pipeline view.
+
+        Args:
+            pipeline_name: Name of the pipeline.
+            stack_name: Stack whose metadata store to use.
+
+        Returns:
+            A post-execution pipeline view for the given name or `None` if
+            it doesn't exist.
+
+        Raises:
+            KeyError: If no stack with the given name exists.
+        """
+        return self._metadata_store(stack_name).get_pipeline(pipeline_name)
+
     # Common code (internal implementations, private):
+
+    def _metadata_store(self, stack_name: str) -> "BaseMetadataStore":
+        """Instantiate the metadata store of the requested stack.
+
+        Args:
+            stack_name: name of the stack whose metadata store should be used.
+
+        Returns:
+            A metadata store instance.
+
+        Raises:
+            KeyError: if metadata store flavor is not registered in the
+                StackComponentClassRegistry.
+        """
+        from zenml.metadata_stores import BaseMetadataStore
+        from zenml.stack.stack_component_class_registry import (
+            StackComponentClassRegistry,
+        )
+
+        metadata_store_wrapper = next(
+            c
+            for c in self.get_stack(stack_name).components
+            if c.type == StackComponentType.METADATA_STORE
+        )
+        metadata_store_class = StackComponentClassRegistry.get_class(
+            component_type=metadata_store_wrapper.type,
+            component_flavor=metadata_store_wrapper.flavor,
+        )
+        metadata_store_config = yaml.safe_load(
+            base64.b64decode(metadata_store_wrapper.config).decode()
+        )
+        metadata_store = metadata_store_class.parse_obj(metadata_store_config)
+        assert isinstance(metadata_store, BaseMetadataStore)
+        return metadata_store
 
     def _stack_from_dict(
         self, name: str, stack_configuration: Dict[StackComponentType, str]

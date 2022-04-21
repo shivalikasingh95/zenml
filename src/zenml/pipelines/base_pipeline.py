@@ -116,8 +116,11 @@ class BasePipeline(metaclass=BasePipelineMeta):
         self.requirements_file = kwargs.pop(PARAM_REQUIREMENTS_FILE, None)
         self.dockerignore_file = kwargs.pop(PARAM_DOCKERIGNORE_FILE, None)
         self.secrets = kwargs.pop(PARAM_SECRETS, [])
-
-        self.name = self.__class__.__name__
+        project = Repository().active_project
+        if project is not None:
+            self.name = f"{project.name}::{self.__class__.__name__}"
+        else:
+            self.name = self.__class__.__name__
         logger.info("Creating run for pipeline: `%s`", self.name)
         logger.info(
             f'Cache {"enabled" if self.enable_cache else "disabled"} for '
@@ -355,6 +358,7 @@ class BasePipeline(metaclass=BasePipelineMeta):
             **additional_parameters,
         )
         stack = Repository().active_stack
+        project = Repository().active_project
 
         stack_metadata = {
             component_type.value: component.FLAVOR
@@ -367,6 +371,7 @@ class BasePipeline(metaclass=BasePipelineMeta):
                 **stack_metadata,
                 "total_steps": len(self.steps),
                 "schedule": bool(schedule),
+                "in_project": project is not None,
             },
         )
 

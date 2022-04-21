@@ -13,10 +13,11 @@
 #  permissions and limitations under the License.
 """CLI to interact with pipelines."""
 import types
-from typing import Any
+from typing import Any, Optional
 
 import click
 
+from zenml.cli import utils as cli_utils
 from zenml.cli.cli import cli
 from zenml.config.config_keys import (
     PipelineConfigurationKeys,
@@ -24,6 +25,7 @@ from zenml.config.config_keys import (
 )
 from zenml.exceptions import PipelineConfigurationError
 from zenml.logger import get_logger
+from zenml.repository import Repository
 from zenml.utils import source_utils, yaml_utils
 
 logger = get_logger(__name__)
@@ -122,3 +124,61 @@ def run_pipeline(python_file: str, config_path: str) -> None:
     )
     logger.debug("Finished setting up pipeline '%s' from CLI", pipeline_name)
     pipeline_instance.run()
+
+
+@pipeline.command("list", help="List all pipelines in the current stack.")
+@click.option("--project", type=str)
+@click.option("--stack", "-s", type=str)
+def list_pipelines(
+    project: Optional[str] = None, stack: Optional[str] = None
+) -> None:
+    """List all pipelines in the active stack's metadata store."""
+    cli_utils.print_active_profile()
+    repo = Repository()
+    if project is not None:
+        try:
+            repo.zen_store.get_project(project)
+        except KeyError:
+            cli_utils.error(f"No such project: '{project}'")
+    pipelines = repo.get_pipelines(stack_name=stack, project=project)
+    table = [{"ID": str(p._id), "NAME": p._name} for p in pipelines]
+    if table:
+        cli_utils.print_table(table)
+    else:
+        for_project = f" for project '{project}'" if project is not None else ""
+        cli_utils.declare(f"No pipelines found{for_project}.")
+
+
+@pipeline.group("runs")
+def pipeline_runs() -> None:
+    """Information about pipeline runs."""
+
+
+@pipeline_runs.command("list", help="Help")
+@click.argument("pipeline", required=False)
+@click.option("--stack", "-s", type=str)
+def list_runs(
+    pipeline: Optional[str] = None, stack: Optional[str] = None
+) -> None:
+    """List all pipeline runs in the active stack's metadata store."""
+    cli_utils.print_active_profile()
+    repo = Repository()
+    if pipeline is not None:
+        pipeline_view = repo.get_pipeline(pipeline, stack_name=stack)
+        if pipeline_view is None:
+            cli_utils.error(f"No pipeline named {pipeline} found.")
+        table = [
+            {"PIPELINE": pipeline, "RUN": n}
+            for n in pipeline_view.get_run_names()
+        ]
+    else:
+        table = [
+            {"PIPELINE": p._name, "RUN": n}
+            for p in repo.get_pipelines()
+            for n in p.get_run_names()
+        ]
+    if table:
+        cli_utils.print_table(table)
+    else:
+        for_pipeline = "" if pipeline is None else f" for pipeline '{pipeline}'"
+        cli_utils.declare(f"No pipeline runs found{for_pipeline}.")
