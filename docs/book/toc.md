@@ -1,7 +1,9 @@
 # Table of contents
 
 * [Landing Page](index.md)
-* [ZenML](<index (1).md>)
+
+## ZenML
+* [ZenML](introduction/zenml.md)
 * [Quickstart](introduction/quickstart-guide.md)
 * [Core Concepts](introduction/core-concepts.md)
 

@@ -14,12 +14,12 @@ common ML development tasks. ZenML is not here to replace the great tools that s
 Rather, it **integrates natively with popular ML tooling** and gives standard abstraction to write your workflows.
 
 {% hint style="success" %}
-Read more about Why ZenML exists [here](introduction/why-zenml.md).
+Read more about Why ZenML exists [here](why-zenml.md).
 {% endhint %}
 
 ## Who is ZenML for?
 
-![Before and after ZenML](assets/sam-side-by-side-full-text.png)
+![Before and after ZenML](../assets/sam-side-by-side-full-text.png)
 
 ZenML is created for data science / machine learning teams that are not only engaged in training models, but also in 
 putting them out in production. Production can mean many things, but examples could be:
@@ -55,9 +55,9 @@ early stages of your project, you get the following benefits:
 
 A good place to go from this point is to:
 
-* Understand what is so special about [ZenML](introduction/why-zenml.md).
-* Get up and running with your [first pipeline](introduction/quickstart-guide.md).
-* Read more about [core concepts](introduction/core-concepts.md) to inform your decision about using **ZenML.**
+* Understand what is so special about [ZenML](why-zenml.md).
+* Get up and running with your [first pipeline](quickstart-guide.md).
+* Read more about [core concepts](core-concepts.md) to inform your decision about using **ZenML.**
 
 ## Get involved!
 
@@ -65,4 +65,4 @@ If you're just not ready to use **ZenML** for whatever reason, but still would l
 way is to [star the GitHub repository](https://github.com/zenml-io/zenml)! You can then keep up with the latest and 
 greatest from **ZenML**, and it would help us tremendously to get more people using it.
 
-Contributions are also welcome! Please read our [contributing guide](../../CONTRIBUTING.md) to get started.
+Contributions are also welcome! Please read our [contributing guide](../../../CONTRIBUTING.md) to get started.
