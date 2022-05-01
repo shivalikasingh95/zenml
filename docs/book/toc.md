@@ -1,8 +1,9 @@
 # Table of contents
 
-* [Landing Page](index.md)
+* [🛬 Landing Page](index.md)
 
 ## ZenML
+
 * [ZenML](introduction/zenml.md)
 * [Quickstart](introduction/quickstart-guide.md)
 * [Core Concepts](introduction/core-concepts.md)
@@ -20,7 +21,7 @@
   * [Fetching Historic Runs](developer\_guide/fetching\_historic\_runs.md)
   * [Class Based API](developer\_guide/class\_based\_api.md)
 * [Stacks](developer-guide/stacks.md)
-* [Repo & Config](developer-guide/stacks.md)
+*
 * [Profiles](advanced\_guide/profiles.md)
 
 ## Advanced Guide
@@ -40,7 +41,7 @@
 
 ## Collaborate
 
-* [ZenML Service](developer-guide/stacks.md)
+*
 
 ## Stack Components
 
@@ -66,7 +67,7 @@
 
 * [Roadmap](reference/roadmap.md)
 * [Glossary](reference/glossary.md)
-* [FAQ](developer-guide/stacks.md)
+*
 * [System Environmental Variables](reference/system-env.md)
 * [CLI Reference](https://apidocs.zenml.io/latest/cli/)
 * [API Reference](https://apidocs.zenml.io/latest/)

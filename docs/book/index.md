@@ -1,10 +1,8 @@
 ---
 description: Example Landing Page
-coverY: 0
-layout: landing
 ---
 
-# Landing Page
+# 🛬 Landing Page
 
 **ZenML** ....
 
