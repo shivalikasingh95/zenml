@@ -398,6 +398,13 @@ class Stack:
                     f"    `zenml stack up`\n"
                 )
 
+        runtime_configuration[
+            RUN_NAME_OPTION_KEY
+        ] = runtime_configuration.run_name or (
+            f"{pipeline.name}-"
+            f'{datetime.now().strftime("%d_%h_%y-%H_%M_%S_%f")}'
+        )
+
         for component in self.components.values():
             component.prepare_pipeline_deployment(
                 pipeline=pipeline,
@@ -407,13 +414,6 @@ class Stack:
 
         for component in self.components.values():
             component.prepare_pipeline_run()
-
-        runtime_configuration[
-            RUN_NAME_OPTION_KEY
-        ] = runtime_configuration.run_name or (
-            f"{pipeline.name}-"
-            f'{datetime.now().strftime("%d_%h_%y-%H_%M_%S_%f")}'
-        )
 
         logger.info(
             "Using stack `%s` to run pipeline `%s`...",
