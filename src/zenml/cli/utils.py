@@ -158,12 +158,14 @@ def format_integration_list(
     can then be printed in a table style using cli_utils.print_table."""
     list_of_dicts = []
     for name, integration_impl in integrations:
-        is_installed = integration_impl.check_installation()  # type: ignore[attr-defined]
+        # type: ignore[attr-defined]
+        is_installed = integration_impl.check_installation()
         list_of_dicts.append(
             {
                 "INSTALLED": ":white_check_mark:" if is_installed else "",
                 "INTEGRATION": name,
-                "REQUIRED_PACKAGES": ", ".join(integration_impl.REQUIREMENTS),  # type: ignore[attr-defined]
+                # type: ignore[attr-defined]
+                "REQUIRED_PACKAGES": ", ".join(integration_impl.REQUIREMENTS),
             }
         )
     return list_of_dicts
@@ -217,7 +219,9 @@ def print_stack_configuration(
 
     # capitalize entries in first column
     rich_table.columns[0]._cells = [
-        component.upper() for component in rich_table.columns[0]._cells  # type: ignore[union-attr]
+        # type: ignore[union-attr]
+        component.upper()
+        for component in rich_table.columns[0]._cells
     ]
     console.print(rich_table)
 
@@ -242,7 +246,9 @@ def print_stack_component_configuration(
 
     # capitalize entries in first column
     rich_table.columns[0]._cells = [
-        component.upper() for component in rich_table.columns[0]._cells  # type: ignore[union-attr]
+        # type: ignore[union-attr]
+        component.upper()
+        for component in rich_table.columns[0]._cells
     ]
     console.print(rich_table)
 
@@ -290,7 +296,9 @@ def print_profile(
 
     # capitalize entries in first column
     rich_table.columns[0]._cells = [
-        component.upper() for component in rich_table.columns[0]._cells  # type: ignore[union-attr]
+        # type: ignore[union-attr]
+        component.upper()
+        for component in rich_table.columns[0]._cells
     ]
     console.print(rich_table)
 
@@ -452,8 +460,7 @@ def get_service_status_emoji(service: BaseService) -> str:
 def pretty_print_model_deployer(
     model_services: List[BaseService], model_deployer: BaseModelDeployer
 ) -> None:
-    """Given a list of served_models print all key value pairs associated with
-    the secret
+    """Print a list of served models.
 
     Args:
         model_services: list of model deployment services

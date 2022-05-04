@@ -78,9 +78,16 @@ def served_models(ctx: click.Context) -> None:
     help="Show only served model versions for the given model name.",
 )
 @click.option(
+    "--all",
+    "-a",
+    "all",
+    is_flag=True,
+    help="Show all served models across all stacks.",
+)
+@click.option(
     "--running",
     is_flag=True,
-    help="Show only model servers that are currently runing.",
+    help="Show only model servers that are currently running.",
 )
 @click.pass_obj
 def list_models(
@@ -89,18 +96,36 @@ def list_models(
     step: Optional[str],
     pipeline_run: Optional[str],
     model: Optional[str],
+    all: Optional[str],
     running: bool,
 ) -> None:
     """Get a list of all served models within the model-deployer stack
     component.
     """
-    services = model_deployer.find_model_server(
-        running=running,
-        pipeline_name=pipeline,
-        pipeline_run_id=pipeline_run,
-        pipeline_step_name=step,
-        model_name=model,
-    )
+    if all:
+        repo = Repository()
+        model_deployers = repo.get_stack_components(
+            StackComponentType.MODEL_DEPLOYER
+        )
+        services = []
+        for md in model_deployers:
+            model_services = md.find_model_server(
+                running=running,
+                pipeline_name=pipeline,
+                pipeline_run_id=pipeline_run,
+                pipeline_step_name=step,
+                model_name=model,
+            )
+            services.extend(iter(model_services))
+    else:
+        services = model_deployer.find_model_server(
+            running=running,
+            pipeline_name=pipeline,
+            pipeline_run_id=pipeline_run,
+            pipeline_step_name=step,
+            model_name=model,
+        )
+
     if services:
         pretty_print_model_deployer(
             services,
