@@ -42,7 +42,7 @@ runs = pipeline.runs  # all runs of a pipeline chronlogically ordered
 run = runs[-1]  # latest run
 
 # or get it by name
-run = pipeline.get_run(run_name="custom_pipeline_run_name")
+run = pipeline.get_run(name="custom_pipeline_run_name")
 ```
 
 #### Steps
