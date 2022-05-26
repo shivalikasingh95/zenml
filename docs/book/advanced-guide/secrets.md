@@ -48,12 +48,6 @@ zenml stack register STACK_NAME \
     --set
 ```
 
-You can also add the secrets manager to an existing stack, for example:
-
-```shell
-zenml stack update STACK_NAME -x SECRETS_MANAGER_NAME
-```
-
 ## Interacting with the Secrets Manager
 
 A full guide on using the CLI interface to register, access, update and delete
@@ -79,7 +73,8 @@ special characters, you can also use the special `@` syntax to indicate to ZenML
 that the value needs to be read from a file:
 
 ```bash
-zenml secret register SECRET_NAME --key_name=@path/to/file_with_key_value/file.txt
+zenml secret register SECRET_NAME --attr_from_literal=value \
+   --attr_from_file=@path/to/file.txt ...
 ```
 
 ## Secret Schemas
@@ -222,7 +217,7 @@ then register your secrets manager in the following way:
 
 ```shell
 zenml integration install gcp_secrets_manager
-zenml secrets-manager register GCP_SECRETS_MANAGER_NAME -f gcp \ 
+zenml secrets-manager register GCP_SECRETS_MANAGER_NAME -t gcp \ 
     --project_id=<ID_OF_YOUR_PROJECT>
 ```
 
