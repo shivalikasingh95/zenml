@@ -204,8 +204,8 @@ class MLFlowDeploymentService(LocalDaemonService):
         if not self.is_running:
             return None
         return self.endpoint.prediction_url
-
-    def predict(self, request: "NDArray[Any]") -> "NDArray[Any]":
+    
+    def predict(self, request: bytes) -> Dict : #"NDArray[Any]") -> "NDArray[Any]":
         """Make a prediction using the service.
 
         Args:
@@ -223,13 +223,50 @@ class MLFlowDeploymentService(LocalDaemonService):
                 "MLflow prediction service is not running. "
                 "Please start the service before making predictions."
             )
-
+        print("request:", request)
+        print("type request:", type(request))
+        img_utf = request.decode('utf-8')
+        img_base64_str = json.dumps(img_utf)
+        print("img_base4_str:",type(img_base64_str))
+        sample = pd.DataFrame({"images": [img_base64_str]}).to_json(orient='split')
+        print("sample:",type(sample))
         if self.endpoint.prediction_url is not None:
             response = requests.post(
                 self.endpoint.prediction_url,
-                json={"instances": request.tolist()},
+                json={"dataframe_split": sample},
+                headers={"Content-Type": "application/json"},
             )
+            print("response:", response)
         else:
             raise ValueError("No endpoint known for prediction.")
         response.raise_for_status()
-        return np.array(response.json())
+        return response #np.array(response.json())
+
+#     def predict(self, request: "NDArray[Any]") -> "NDArray[Any]":
+#         """Make a prediction using the service.
+
+#         Args:
+#             request: a numpy array representing the request
+
+#         Returns:
+#             A numpy array representing the prediction returned by the service.
+
+#         Raises:
+#             Exception: if the service is not running
+#             ValueError: if the prediction endpoint is unknown.
+#         """
+#         if not self.is_running:
+#             raise Exception(
+#                 "MLflow prediction service is not running. "
+#                 "Please start the service before making predictions."
+#             )
+
+#         if self.endpoint.prediction_url is not None:
+#             response = requests.post(
+#                 self.endpoint.prediction_url,
+#                 json={"instances": request.tolist()},
+#             )
+#         else:
+#             raise ValueError("No endpoint known for prediction.")
+#         response.raise_for_status()
+#         return np.array(response.json())
