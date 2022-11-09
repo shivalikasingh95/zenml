@@ -69,106 +69,6 @@ class MLFlowDeployerParameters(BaseParameters):
     mlserver: bool = False
     timeout: int = DEFAULT_SERVICE_START_STOP_TIMEOUT
 
-
-# @step(enable_cache=False)
-# def mlflow_model_deployer_step(
-#     deploy_decision: bool,
-#     model: ModelArtifact,
-#     params: MLFlowDeployerParameters,
-# ) -> MLFlowDeploymentService:
-#     """Model deployer pipeline step for MLflow.
-
-#     # noqa: DAR401
-
-#     Args:
-#         deploy_decision: whether to deploy the model or not
-#         model: the model artifact to deploy
-#         params: parameters for the deployer step
-
-#     Returns:
-#         MLflow deployment service
-#     """
-#     model_deployer = cast(
-#         MLFlowModelDeployer, MLFlowModelDeployer.get_active_model_deployer()
-#     )
-
-#     # fetch the MLflow artifacts logged during the pipeline run
-#     experiment_tracker = Client().active_stack.experiment_tracker
-
-#     if not isinstance(experiment_tracker, MLFlowExperimentTracker):
-#         raise get_missing_mlflow_experiment_tracker_error()
-
-#     # get pipeline name, step name and run id
-#     step_env = cast(StepEnvironment, Environment()[STEP_ENVIRONMENT_NAME])
-#     pipeline_name = step_env.pipeline_name
-#     run_id = step_env.pipeline_run_id
-#     step_name = step_env.step_name
-
-#     client = MlflowClient()
-#     mlflow_run_id = experiment_tracker.get_run_id(
-#         experiment_name=params.experiment_name or pipeline_name,
-#         run_name=params.run_name or run_id,
-#     )
-
-#     model_uri = ""
-#     if mlflow_run_id and client.list_artifacts(
-#         mlflow_run_id, params.model_name
-#     ):
-#         model_uri = artifact_utils.get_artifact_uri(
-#             run_id=mlflow_run_id, artifact_path=params.model_name
-#         )
-
-#     # fetch existing services with same pipeline name, step name and model name
-#     existing_services = model_deployer.find_model_server(
-#         pipeline_name=pipeline_name,
-#         pipeline_step_name=step_name,
-#         model_name=params.model_name,
-#     )
-
-#     # create a config for the new model service
-#     predictor_cfg = MLFlowDeploymentConfig(
-#         model_name=params.model_name or "",
-#         model_uri=model_uri,
-#         workers=params.workers,
-#         mlserver=params.mlserver,
-#         pipeline_name=pipeline_name,
-#         pipeline_run_id=run_id,
-#         pipeline_step_name=step_name,
-#     )
-
-#     # Creating a new service with inactive state and status by default
-#     service = MLFlowDeploymentService(predictor_cfg)
-#     if existing_services:
-#         service = cast(MLFlowDeploymentService, existing_services[0])
-
-#     # check for conditions to deploy the model
-#     if not model_uri:
-#         # an MLflow model was not trained in the current run, so we simply reuse
-#         # the currently running service created for the same model, if any
-#         if not existing_services:
-#             logger.warning(
-#                 f"An MLflow model with name `{params.model_name}` was not "
-#                 f"logged in the current pipeline run and no running MLflow "
-#                 f"model server was found. Please ensure that your pipeline "
-#                 f"includes a step with a MLflow experiment configured that "
-#                 "trains a model and logs it to MLflow. This could also happen "
-#                 "if the current pipeline run did not log an MLflow model  "
-#                 f"because the training step was cached."
-#             )
-#             # return an inactive service just because we have to return
-#             # something
-#             return service
-#         logger.info(
-#             f"An MLflow model with name `{params.model_name}` was not "
-#             f"trained in the current pipeline run. Reusing the existing "
-#             f"MLflow model server."
-#         )
-#         if not service.is_running:
-#             service.start(params.timeout)
-
-#         # return the existing service
-#         return service
-
 @step(enable_cache=False)
 def mlflow_model_deployer_step(
     deploy_decision: bool,
@@ -193,7 +93,6 @@ def mlflow_model_deployer_step(
 
     # fetch the MLflow artifacts logged during the pipeline run
     experiment_tracker = Client(  # type: ignore[call-arg]
-        skip_client_check=True
     ).active_stack.experiment_tracker
 
     if not isinstance(experiment_tracker, MLFlowExperimentTracker):
@@ -202,28 +101,20 @@ def mlflow_model_deployer_step(
     # get pipeline name, step name and run id
     step_env = cast(StepEnvironment, Environment()[STEP_ENVIRONMENT_NAME])
     pipeline_name = step_env.pipeline_name
-    print("pipeline_name:", pipeline_name)
     run_id = step_env.pipeline_run_id
-    print("run_id:", run_id)
     step_name = step_env.step_name
-    print("step_name:", step_name)
-    mlflow.set_tracking_uri("http://localhost:5000")
     client = MlflowClient()
     mlflow_run_id = experiment_tracker.get_run_id(
         experiment_name=params.experiment_name or pipeline_name,
         run_name=params.run_name or run_id,
     )
-    print("mlflow_run_id:", mlflow_run_id)
 
     model_uri = ""
-    print("params-model-name:", params.model_name)
     artifacts_list = client.list_artifacts(mlflow_run_id, params.model_name)
-    print("artifacts_list:",artifacts_list)
     if mlflow_run_id and artifacts_list:
         model_uri = artifact_utils.get_artifact_uri(
             run_id=mlflow_run_id, artifact_path=params.model_name
         )
-        print("model_uri:", model_uri)
 
     # fetch existing services with same pipeline name, step name and model name
     existing_services = model_deployer.find_model_server(
@@ -231,7 +122,6 @@ def mlflow_model_deployer_step(
         pipeline_step_name=step_name,
         model_name=params.model_name,
     )
-    print("existing_services:", existing_services)
 
     # create a config for the new model service
     predictor_cfg = MLFlowDeploymentConfig(
@@ -243,7 +133,6 @@ def mlflow_model_deployer_step(
         pipeline_run_id=run_id,
         pipeline_step_name=step_name,
     )
-    print("predictor_cfg:", predictor_cfg)
 
     # Creating a new service with inactive state and status by default
     service = MLFlowDeploymentService(predictor_cfg)
