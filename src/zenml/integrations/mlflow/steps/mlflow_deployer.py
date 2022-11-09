@@ -69,6 +69,7 @@ class MLFlowDeployerParameters(BaseParameters):
     mlserver: bool = False
     timeout: int = DEFAULT_SERVICE_START_STOP_TIMEOUT
 
+
 @step(enable_cache=False)
 def mlflow_model_deployer_step(
     deploy_decision: bool,
@@ -166,40 +167,6 @@ def mlflow_model_deployer_step(
 
         # return the existing service
         return service
-
-    # even when the deploy decision is negative, if an existing model server
-    # is not running for this pipeline/step, we still have to serve the
-    # current model, to ensure that a model server is available at all times
-    if not deploy_decision and existing_services:
-        logger.info(
-            f"Skipping model deployment because the model quality does not "
-            f"meet the criteria. Reusing last model server deployed by step "
-            f"'{step_name}' and pipeline '{pipeline_name}' for model "
-            f"'{params.model_name}'..."
-        )
-        # even when the deploy decision is negative, we still need to start
-        # the previous model server if it is no longer running, to ensure
-        # that a model server is available at all times
-        if not service.is_running:
-            service.start(params.timeout)
-        return service
-
-    # create a new model deployment and replace an old one if it exists
-    new_service = cast(
-        MLFlowDeploymentService,
-        model_deployer.deploy_model(
-            replace=True,
-            config=predictor_cfg,
-            timeout=params.timeout,
-        ),
-    )
-
-    logger.info(
-        f"MLflow deployment service started and reachable at:\n"
-        f"    {new_service.prediction_url}\n"
-    )
-
-    return new_service
 
     # even when the deploy decision is negative, if an existing model server
     # is not running for this pipeline/step, we still have to serve the
